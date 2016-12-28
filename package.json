@@ -1,0 +1,16 @@
+{
+  "name": "opcode-slack-cron",
+  "version": "1.0.0",
+  "description": "",
+  "main": "announcer.js",
+  "scripts": {
+    "start": "node announcer.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "cron": "^1.2.1",
+    "node-slack": "0.0.7"
+  }
+}
