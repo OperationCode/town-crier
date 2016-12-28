@@ -11,6 +11,7 @@
   "license": "ISC",
   "dependencies": {
     "cron": "^1.2.1",
+    "dotenv": "^2.0.0",
     "node-slack": "0.0.7"
   }
 }
