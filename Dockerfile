@@ -1,4 +1,4 @@
-FROM node:boron
+FROM mhart/alpine-node:6
 
 # Create app directory
 RUN mkdir -p /usr/src/app
