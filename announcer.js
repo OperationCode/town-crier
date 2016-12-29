@@ -23,8 +23,10 @@ base('Slack Announcer').select({
         var dom = record.get('Day of Month');
         var mon = record.get('Month');
         var dow = record.get('Day of Week');
+        
+        var airtable_cron = (sec + ' ' + min + ' ' + hor + ' ' + dom + ' ' + mon + ' ' + dow);
 
-        new CronJob(sec + ' ' + min + ' ' + hor + ' ' + dom + ' ' + mon + ' ' + dow, function () {
+        new CronJob(airtable_cron, function () {
             slack.send({
                 text: record.get('Text'),
                 channel: record.get('Channels').toString(),
