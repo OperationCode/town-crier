@@ -4,15 +4,13 @@
   "description": "",
   "main": "announcer.js",
   "scripts": {
-    "start": "node announcer.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node announcer.js"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
     "airtable": "^0.4.3",
     "cron": "^1.2.1",
-    "dotenv": "^2.0.0",
     "node-slack": "0.0.7"
   },
   "devDependencies": {
