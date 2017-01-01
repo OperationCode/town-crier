@@ -21,15 +21,22 @@ base('Slack Announcer').select({
         var dom = record.get('Day of Month');
         var mon = record.get('Month');
         var dow = record.get('Day of Week');
-        
+
         var airtable_cron = (sec + ' ' + min + ' ' + hor + ' ' + dom + ' ' + mon + ' ' + dow);
 
         new CronJob(airtable_cron, function () {
-            slack.send({
-                text: record.get('Text'),
-                channel: record.get('Channels').toString(),
-                username: record.get('Announcer Name')
-            });
+
+
+            // See what channels are associated with this entry.
+            record.get('Channels').forEach(function (channel) {
+
+                slack.send({
+                    text: record.get('Text'),
+                    channel: channel.toString(),
+                    username: record.get('Announcer Name')
+                });
+
+            })
         }, null, true, 'America/Los_Angeles');
 
     });
