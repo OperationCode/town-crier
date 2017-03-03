@@ -7,7 +7,7 @@ const base = new Airtable({
     apiKey: process.env.AIRTABLE_API_KEY
 }).base(process.env.AIRTABLE_BASE);
 
-const airtableCronJobs = [];
+var airtableCronJobs = [];
 
 // Flush and reload the CRON table at 3 minutes and 3 seconds past every hour
 // This is specifically offset from 5, 10, 15 minute intervals to ensure that 
