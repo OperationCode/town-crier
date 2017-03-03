@@ -13,7 +13,7 @@ var airtableCronJobs = [];
 // This is specifically offset from 5, 10, 15 minute intervals to ensure that 
 // a CRON job is not set to fire whe the CRON table is being refreshed
 
-const update_cron = '3 3 */1 * * *';
+const update_cron = '3 3 * * * *';
 
 new CronJob(update_cron, function () {
     // Explicitly stop all airtable CRON jobs 
@@ -33,6 +33,7 @@ new CronJob(update_cron, function () {
 
         records.forEach(function (record) {
 
+            var name = record.get('Name');
             var sec = record.get('Second');
             var min = record.get('Minute');
             var hor = record.get('Hour');
@@ -40,10 +41,15 @@ new CronJob(update_cron, function () {
             var mon = record.get('Month');
             var dow = record.get('Day of Week');
 
+            if (min > 1 && min < 5) {
+                min = 5;
+                console.log(`job ${name} was modified to run outside of the CRON table refresh window`);
+            }
+
             var airtable_cron = (sec + ' ' + min + ' ' + hor + ' ' + dom + ' ' + mon + ' ' + dow);
 
             airtableCronJobs.push(new CronJob(airtable_cron, function () {
-
+                console.log(`Running job ${name}`);
 
                 // See what channels are associated with this entry.
                 record.get('Channels').forEach(function (channel) {
