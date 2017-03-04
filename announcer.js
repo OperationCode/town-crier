@@ -9,13 +9,8 @@ const base = new Airtable({
 
 var airtableCronJobs = [];
 
-// Flush and reload the CRON table at 3 minutes and 3 seconds past every hour
-// This is specifically offset from 5, 10, 15 minute intervals to ensure that 
-// a CRON job is not set to fire whe the CRON table is being refreshed
-
-const update_cron = '3 3 * * * *';
-
-new CronJob(update_cron, function () {
+function refreshCronTable () {
+    console.log("Refreshing the CRON Table");
     // Explicitly stop all airtable CRON jobs 
     airtableCronJobs.forEach(function (job) {
         job.stop();
@@ -75,4 +70,15 @@ new CronJob(update_cron, function () {
             console.log(error);
         }
     });
-}, null, true, 'America/Los_Angeles');
+}
+
+// Refresh the CRON table immediately upon npm start
+refreshCronTable();
+
+// and then flush and reload the CRON table at 3 minutes and 3 seconds past every hour
+// This is specifically offset from 5, 10, 15 minute intervals to ensure that 
+// a CRON job is not set to fire whe the CRON table is being refreshed
+
+const update_cron = '3 3 * * * *';
+
+new CronJob(update_cron, refreshCronTable, null, true, 'America/Los_Angeles');
