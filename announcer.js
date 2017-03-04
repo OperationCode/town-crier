@@ -75,4 +75,4 @@ new CronJob(update_cron, function () {
             console.log(error);
         }
     });
-});
+}, null, true, 'America/Los_Angeles');
