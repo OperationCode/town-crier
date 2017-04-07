@@ -5,7 +5,8 @@
   "main": "announcer.js",
   "scripts": {
     "start": "node announcer.js",
-    "test": "node -r dotenv/config announcer.js"
+    "test": "node -r dotenv/config announcer.js",
+    "postinstall": "./node_modules/.bin/opencollective-postinstall || exit 0"
   },
   "author": "",
   "license": "ISC",
@@ -16,6 +17,12 @@
   },
   "devDependencies": {
     "dotenv": "^2.0.0",
-    "eslint": "^3.12.2"
+    "eslint": "^3.12.2",
+    "opencollective-postinstall": "^1.0.15"
+  },
+  "collective": {
+    "type": "opencollective",
+    "url": "https://opencollective.com/operationcode",
+    "logo": "https://opencollective.com/operationcode/logo.txt"
   }
 }
