@@ -73,7 +73,11 @@ function refreshCronTable () {
 }
 
 // Refresh the CRON table immediately upon npm start
-refreshCronTable();
+try {
+    refreshCronTable();
+} catch (ex) {
+    console.log(`Error refreshing Cron Table: ${ex}`);
+}
 
 // and then flush and reload the CRON table at 3 minutes and 3 seconds past every hour
 // This is specifically offset from 5, 10, 15 minute intervals to ensure that 
@@ -81,4 +85,9 @@ refreshCronTable();
 
 const update_cron = '3 3 * * * *';
 
-new CronJob(update_cron, refreshCronTable, null, true, 'America/Los_Angeles');
+try {
+    new CronJob(update_cron, refreshCronTable, null, true, 'America/Los_Angeles');
+} catch (ex) {
+    console.log(`Invalid Cron Pattern: ${ex}`);
+}
+
