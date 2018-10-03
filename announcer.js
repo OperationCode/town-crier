@@ -2,20 +2,24 @@ const Airtable = require('airtable');
 const hook_url = "https://hooks.slack.com/services/" + process.env.SLACK_TOKEN;
 const CronJob = require('cron').CronJob;
 const Slack = require('node-slack');
-const winston  = require('winston');
+const { createLogger, format, transports } = require('winston');
+const { combine, timestamp, label, prettyPrint } = format;
 const slack = new Slack(hook_url);
 const base = new Airtable({
     apiKey: process.env.AIRTABLE_API_KEY
 }).base(process.env.AIRTABLE_BASE);
 
-const logger = winston.createLogger({
-  level: 'info',
-  format: winston.format.json(),
+const logger = createLogger({
+  format: combine(
+    timestamp(),
+    prettyPrint()
+  ),
   transports: [
-    new winston.transports.File({ filename: 'error.log', level: 'error' }),
-    new winston.transports.File({ filename: 'combined.log' }),
-    new winston.transports.Console(),
-  ]
+    new transports.File({ filename: 'error.log', level: 'error' }),
+    new transports.File({ filename: 'combined.log' }),
+    new transports.Console(),
+  ],
+  level: 'info'
 });
 
 var airtableCronJobs = [];
@@ -68,7 +72,7 @@ function refreshCronTable () {
                 //Makes the bot not post overnight unless the post is forced.
                 var OutsideNormalHours = ((new Date().getUTCHours() >= 6 && new Date().getUTCHours() <= 13)) ? true : false;
                 logger.log({
-                    level: 'info',
+                    level: 'debug',
                     message: `Current local server date ${new Date().getUTCHours()}`
                 });
                 if(!OutsideNormalHours || fan) {
@@ -97,6 +101,7 @@ function refreshCronTable () {
                     })
                 }
             }, null, true, 'America/Los_Angeles'));
+            }, null, true, 'America/Los_Angeles'));
             
         // To fetch the next page of records, call `fetchNextPage`.
         // If there are more records, `page` will get called again.
@@ -105,9 +110,8 @@ function refreshCronTable () {
 
     }, function done(error) {
         if (error) {
-            //console.log("Error Occured: ", error);
             logger.log({
-                level: 'info',
+                level: 'crit',
                 message: `Error Ocurred: ${error}`
             })
         }
@@ -120,7 +124,7 @@ try {
     refreshCronTable();
 } catch (ex) {
     logger.log({
-        level: 'error',
+        level: 'crit',
         message: `Error refreshing Cron Table: ${ex}`
     })
 }
@@ -136,11 +140,10 @@ const update_cron = '3 3 * * * *';
 
 try {
     
-    //new CronJob(update_cron, refreshCronTable, null, true, 'America/Los_Angeles');
+    new CronJob(update_cron, refreshCronTable, null, true, 'America/Los_Angeles');
 } catch (ex) {
     logger.log({
-        level: 'error',
+        level: 'crit',
         message: `Invalid Cron Pattern: ${ex}`
     })
 }
-
