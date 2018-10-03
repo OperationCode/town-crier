@@ -1,4 +1,3 @@
-require('dotenv').config()
 const Airtable = require('airtable');
 const hook_url = "https://hooks.slack.com/services/" + process.env.SLACK_TOKEN;
 const CronJob = require('cron').CronJob;
