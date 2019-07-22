@@ -9,6 +9,42 @@ const base = new Airtable({
 
 var airtableCronJobs = [];
 
+const DIVIDER = '<divider>'
+
+const generateTitleLinks = (text) => {
+  if (/<.+\|.+>/.test(text)) {
+    return {
+      title: text.match(/<(.+)\|/)[1],
+      title_link: text.match(/\|(.+)>/)[1],
+      text: text.replace(/<.+\|.+>/, '\n')
+    }
+  }
+  return { text }
+}
+
+const createAttachment = (text) => ({
+  ...generateTitleLinks(text),
+  color: "#3ed6f0",
+  type: "section"
+})
+
+const createDividedAttachment = (text) => {
+  return [
+    createAttachment(text),
+    {
+      "type": "divider"
+    }
+  ]
+}
+
+const generateAttachments = (text) => {
+  if (text.includes(DIVIDER)) {
+    return text.split(DIVIDER).flatMap(createDividedAttachment)
+  } else {
+    return [createAttachment(text)]
+  }
+}
+
 function refreshCronTable () {
     console.log("Refreshing the CRON Table");
     // Explicitly stop all airtable CRON jobs 
@@ -48,9 +84,11 @@ function refreshCronTable () {
 
                 // See what channels are associated with this entry.
                 record.get('Channels').forEach(function (channel) {
+                  const attachmentContent = record.get("Text")
 
                     slack.send({
-                        text: record.get('Text'),
+                        text: " ",
+                        attachments: generateAttachments(attachmentContent),
                         channel: channel.toString(),
                         username: record.get('Announcer Name')
                     });
