@@ -10,7 +10,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "airtable": "^0.7.0",
+    "airtable": "^0.7.2",
     "cron": "^1.2.1",
     "node-slack": "0.0.7"
   },
