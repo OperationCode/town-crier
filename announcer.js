@@ -1,5 +1,5 @@
 const Airtable = require('airtable');
-const hook_url = "https://hooks.slack.com/services/" + process.env.SLACK_TOKEN;
+const hook_url = 'https://hooks.slack.com/services/' + process.env.SLACK_TOKEN;
 const CronJob = require('cron').CronJob;
 const Slack = require('node-slack');
 const slack = new Slack(hook_url);
@@ -9,7 +9,7 @@ const base = new Airtable({
 
 var airtableCronJobs = [];
 
-const DIVIDER = '<divider>'
+const DIVIDER = '<divider>';
 
 const generateTitleLinks = (text) => {
   if (/<.+\|.+>/.test(text)) {
@@ -17,115 +17,166 @@ const generateTitleLinks = (text) => {
       title: text.match(/<(.+)\|/)[1],
       title_link: text.match(/\|(.+)>/)[1],
       text: text.replace(/<.+\|.+>/, '\n')
-    }
+    };
   }
-  return { text }
-}
+  return { text };
+};
 
 const createAttachment = (text) => ({
   ...generateTitleLinks(text),
-  color: "#3ed6f0",
-  type: "section"
-})
+  color: '#3ed6f0',
+  type: 'section'
+});
 
 const createDividedAttachment = (text) => {
   return [
     createAttachment(text),
     {
-      "type": "divider"
+      'type': 'divider'
     }
-  ]
-}
+  ];
+};
 
 const generateAttachments = (text) => {
   if (text.includes(DIVIDER)) {
-    return text.split(DIVIDER).flatMap(createDividedAttachment)
+    return text.split(DIVIDER).flatMap(createDividedAttachment);
   } else {
-    return [createAttachment(text)]
+    return [createAttachment(text)];
   }
-}
+};
 
-function refreshCronTable () {
-    console.log("Refreshing the CRON Table");
-    // Explicitly stop all airtable CRON jobs 
-    airtableCronJobs.forEach(function (job) {
-        job.stop();
-    })
+const handleError = (error) => {
+  if (error) {
+    console.error(error);
+  }
+};
 
-    // Flush all CronJob instances
-    airtableCronJobs = [];
+/**
+ * @summary
+ * This function abstracts out the constant parameters and gives you a cron job. 
+ * 
+ * @param cronTime The time to fire off a job
+ * @param onTick The function that is executed when the job is fired
+ */
+const createNewCronJob = (
+  cronTime,
+  onTick,
+) => new CronJob(cronTime, onTick, null, true, 'America/Los_Angeles');
 
-    // Refresh and start all CronJob instances from airtable
-    base('Slack Announcer').select({
-        view: "Announcer Filter"
-    }).eachPage(function page(records, fetchNextPage) {
+/**
+ * @summary
+ * Sends a slack message with the given parameters.
+ * 
+ * @param attachmentContent 
+ * @param channel 
+ * @param announcerName 
+ */
+const sendMessage = (
+  attachmentContent,
+  channel,
+  announcerName,
+) => slack.send({
+  text: ' ',
+  attachments: generateAttachments(attachmentContent),
+  channel: channel.toString(),
+  username: announcerName,
+});
 
-        // This function (`page`) will get called for each page of records.
+/**
+ * @summary
+ * This job creates and returns and cron job from the given record.
+ * Note that this function is used for each record in the page in
+ * @see refreshCronTable.
+ * 
+ * @param record 
+ */
+const generateCronJobFromRecord = (record) => {
+  const name = record.get('Name');
+  const sec = record.get('Second');
+  const min = record.get('Minute');
+  const hor = record.get('Hour');
+  const dom = record.get('Day of Month');
+  const mon = record.get('Month');
+  const dow = record.get('Day of Week');
 
-        records.forEach(function (record) {
+  if (min > 1 && min < 5) {
+    min = 5;
+    console.log(`job ${name} was modified to run outside of the CRON table refresh window`);
+  }
 
-            var name = record.get('Name');
-            var sec = record.get('Second');
-            var min = record.get('Minute');
-            var hor = record.get('Hour');
-            var dom = record.get('Day of Month');
-            var mon = record.get('Month');
-            var dow = record.get('Day of Week');
+  const airtableCron = `${sec} ${min} ${hor} ${dom} ${mon} ${dow}`;
 
-            if (min > 1 && min < 5) {
-                min = 5;
-                console.log(`job ${name} was modified to run outside of the CRON table refresh window`);
-            }
+  const channels = record.get('Channels');
+  const attachmentContent = record.get('Text');
+  const announcerName = record.get('Announcer Name');
 
-            var airtable_cron = (sec + ' ' + min + ' ' + hor + ' ' + dom + ' ' + mon + ' ' + dow);
+  const sendMessageForChannel = () => {
+    channels.forEach((channel) => sendMessage(attachmentContent, channel, announcerName));
+  };
 
-            airtableCronJobs.push(new CronJob(airtable_cron, function () {
-                console.log(`Running job ${name}`);
+  return createNewCronJob(airtableCron, sendMessageForChannel);
+};
 
-                // See what channels are associated with this entry.
-                record.get('Channels').forEach(function (channel) {
-                  const attachmentContent = record.get("Text")
+/**
+ * @summary
+ * Updates the list of cron jobs with the records of a new page.
+ * 
+ * @description
+ * Note that this function is currently not pure because airtableCronJobs 
+ * is a global variable.
+ * 
+ * @param records A list of records from a page
+ * @param fetchNextPage A function that requests the next page. This is called 
+ * after processing and results in the ERROR route being taken if there are no 
+ * more records.
+ */
+const generateCronJobsFromPage = (
+  records,
+  fetchNextPage,
+) => {
+  const cronJobsFromRecords = records.map((record) => generateCronJobFromRecord(record));
+  airtableCronJobs = [airtableCronJobs, ...cronJobsFromRecords];
+  fetchNextPage();
+};
 
-                    slack.send({
-                        text: " ",
-                        attachments: generateAttachments(attachmentContent),
-                        channel: channel.toString(),
-                        username: record.get('Announcer Name')
-                    });
+/**
+ * @summary
+ * Refreshes the Cron Table.
+ * 
+ * @description
+ * First explicitly stops all the airtable cron jobs.
+ * Then flushes all the instances and restarts them from the airtable.
+ */
+const refreshCronTable = () => {
+  console.log('Refreshing the CRON Table')
 
-                })
-            }, null, true, 'America/Los_Angeles'));
+  airtableCronJobs.forEach((job) => job.stop());
+  airtableCronJobs = [];
 
-        });
-
-        // To fetch the next page of records, call `fetchNextPage`.
-        // If there are more records, `page` will get called again.
-        // If there are no more records, `done` will get called.
-        fetchNextPage();
-
-    }, function done(error) {
-        if (error) {
-            console.log(error);
-        }
-    });
-}
+  base('Slack Announcher').select({
+    view: 'Announcer Filter',
+  }).eachPage(
+    (records, fetchNextPage) => generateCronJobsFromPage(records, fetchNextPage), 
+    (error) => handleError(error),
+  );
+};
 
 // Refresh the CRON table immediately upon npm start
 try {
-    refreshCronTable();
+  refreshCronTable();
 } catch (ex) {
-    console.log(`Error refreshing Cron Table: ${ex}`);
+  console.log(`Error refreshing Cron Table: ${ex}`);
 }
 
 // and then flush and reload the CRON table at 3 minutes and 3 seconds past every hour
 // This is specifically offset from 5, 10, 15 minute intervals to ensure that 
 // a CRON job is not set to fire whe the CRON table is being refreshed
 
-const update_cron = '3 3 * * * *';
+const updateCron = '3 3 * * * *';
 
 try {
-    new CronJob(update_cron, refreshCronTable, null, true, 'America/Los_Angeles');
+  createNewCronJob(updateCron, refreshCronTable);
 } catch (ex) {
-    console.log(`Invalid Cron Pattern: ${ex}`);
+  console.log(`Invalid Cron Pattern: ${ex}`);
 }
 
