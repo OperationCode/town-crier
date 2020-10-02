@@ -1,5 +1,5 @@
 const Airtable = require('airtable');
-const hook_url = "https://hooks.slack.com/services/" + process.env.SLACK_TOKEN;
+const hook_url = 'https://hooks.slack.com/services/' + process.env.SLACK_TOKEN;
 const CronJob = require('cron').CronJob;
 const Slack = require('node-slack');
 const slack = new Slack(hook_url);
@@ -9,7 +9,7 @@ const base = new Airtable({
 
 var airtableCronJobs = [];
 
-const DIVIDER = '<divider>'
+const DIVIDER = '<divider>';
 
 const generateTitleLinks = (text) => {
   if (/<.+\|.+>/.test(text)) {
@@ -17,33 +17,33 @@ const generateTitleLinks = (text) => {
       title: text.match(/<(.+)\|/)[1],
       title_link: text.match(/\|(.+)>/)[1],
       text: text.replace(/<.+\|.+>/, '\n')
-    }
+    };
   }
-  return { text }
-}
+  return { text };
+};
 
 const createAttachment = (text) => ({
   ...generateTitleLinks(text),
-  color: "#3ed6f0",
-  type: "section"
-})
+  color: '#3ed6f0',
+  type: 'section'
+});
 
 const createDividedAttachment = (text) => {
   return [
     createAttachment(text),
     {
-      "type": "divider"
+      'type': 'divider'
     }
-  ]
-}
+  ];
+};
 
 const generateAttachments = (text) => {
   if (text.includes(DIVIDER)) {
-    return text.split(DIVIDER).flatMap(createDividedAttachment)
+    return text.split(DIVIDER).flatMap(createDividedAttachment);
   } else {
-    return [createAttachment(text)]
+    return [createAttachment(text)];
   }
-}
+};
 
 const handleError = (error) => {
   if (error) {
@@ -76,7 +76,7 @@ const sendMessage = (
   channel,
   announcerName,
 ) => slack.send({
-  text: " ",
+  text: ' ',
   attachments: generateAttachments(attachmentContent),
   channel: channel.toString(),
   username: announcerName,
@@ -148,13 +148,13 @@ const generateCronJobsFromPage = (
  * Then flushes all the instances and restarts them from the airtable.
  */
 const refreshCronTable = () => {
-  console.log("Refreshing the CRON Table")
+  console.log('Refreshing the CRON Table')
 
   airtableCronJobs.forEach((job) => job.stop());
   airtableCronJobs = [];
 
   base('Slack Announcher').select({
-    view: "Announcer Filter",
+    view: 'Announcer Filter',
   }).eachPage(
     (records, fetchNextPage) => generateCronJobsFromPage(records, fetchNextPage), 
     (error) => handleError(error),
