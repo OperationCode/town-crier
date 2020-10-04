@@ -1,11 +1,12 @@
 const Airtable = require('airtable');
-const hook_url = "https://hooks.slack.com/services/" + process.env.SLACK_TOKEN;
 const CronJob = require('cron').CronJob;
-const Slack = require('node-slack');
-const slack = new Slack(hook_url);
+const { WebClient } = require('@slack/web-api');
+
 const base = new Airtable({
     apiKey: process.env.AIRTABLE_API_KEY
 }).base(process.env.AIRTABLE_BASE);
+
+const slackWebClient = new WebClient(process.env.SLACK_TOKEN);
 
 var airtableCronJobs = [];
 
@@ -82,17 +83,26 @@ function refreshCronTable () {
             airtableCronJobs.push(new CronJob(airtable_cron, function () {
                 console.log(`Running job ${name}`);
 
+                const currentTime = new Date().toTimeString();
+
                 // See what channels are associated with this entry.
                 record.get('Channels').forEach(function (channel) {
                   const attachmentContent = record.get("Text")
 
-                    slack.send({
-                        text: " ",
-                        attachments: generateAttachments(attachmentContent),
-                        channel: channel.toString(),
-                        username: record.get('Announcer Name')
-                    });
+                  (async () => {
 
+                    try {
+                      // Use the `chat.postMessage` method to send a message from this app
+                      await web.chat.postMessage({
+                        text: " ",
+                      attachments: generateAttachments(attachmentContent),
+                      channel: channel.toString(),
+                      username: record.get('Announcer Name')
+                      });
+                    } catch (error) {
+                      console.log(error);
+                    }
+                  })();
                 })
             }, null, true, 'America/Los_Angeles'));
 
